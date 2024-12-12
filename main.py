@@ -3,8 +3,12 @@ from tkinter import Tk, Label, Entry, Button, messagebox, Toplevel
 
 # Функция для проверки логина и пароля
 def authenticate_user():
-    login = login_entry.get()
-    password = password_entry.get()
+    login = login_entry.get().strip()
+    password = password_entry.get().strip()
+
+    if not login or not password:
+        messagebox.showerror("Ошибка", "Пожалуйста, заполните все поля.")
+        return
 
     try:
         # Подключение к базе данных SQLite
@@ -12,10 +16,11 @@ def authenticate_user():
         cursor = conn.cursor()
 
         # Выполнение SQL-запроса для проверки логина и пароля
-        cursor.execute("""
+        cursor.execute(
+            """
             SELECT first_name, last_name FROM users
             WHERE login = ? AND password = ?
-        """, (login, password))
+            """, (login, password))
         user = cursor.fetchone()
         conn.close()
 
@@ -24,7 +29,7 @@ def authenticate_user():
             messagebox.showinfo("Успех", f"Добро пожаловать, {user[0]} {user[1]}!")
         else:
             messagebox.showerror("Ошибка", "Неверный логин или пароль.")
-    except Exception as e:
+    except sqlite3.Error as e:
         messagebox.showerror("Ошибка базы данных", f"Ошибка: {str(e)}")
 
 # Функция для добавления нового пользователя
@@ -57,22 +62,30 @@ def add_user_window():
 
     # Функция для сохранения пользователя в базу данных
     def save_user():
-        first_name = first_name_entry.get()
-        last_name = last_name_entry.get()
-        login = login_entry.get()
-        password = password_entry.get()
-        role_id = role_id_entry.get()
+        first_name = first_name_entry.get().strip()
+        last_name = last_name_entry.get().strip()
+        login = login_entry.get().strip()
+        password = password_entry.get().strip()
+        role_id = role_id_entry.get().strip()
+
+        if not all([first_name, last_name, login, password, role_id]):
+            messagebox.showerror("Ошибка", "Пожалуйста, заполните все поля.")
+            return
 
         try:
+            # Проверка, что роль - целое число
+            role_id = int(role_id)
+
             # Подключение к базе данных SQLite
             conn = sqlite3.connect("app.db")
             cursor = conn.cursor()
 
             # SQL-запрос для добавления нового пользователя
-            cursor.execute("""
+            cursor.execute(
+                """
                 INSERT INTO users (first_name, last_name, login, password, role_id)
                 VALUES (?, ?, ?, ?, ?)
-            """, (first_name, last_name, login, password, int(role_id)))
+                """, (first_name, last_name, login, password, role_id))
             conn.commit()
             conn.close()
 
@@ -82,6 +95,8 @@ def add_user_window():
             messagebox.showerror("Ошибка", f"Ошибка добавления: {e}")
         except ValueError:
             messagebox.showerror("Ошибка", "Некорректное значение для поля 'Роль (ID)'")
+        except sqlite3.Error as e:
+            messagebox.showerror("Ошибка базы данных", f"Ошибка: {str(e)}")
 
     # Кнопка "Сохранить"
     Button(add_window, text="Сохранить", command=save_user).pack(pady=20)
